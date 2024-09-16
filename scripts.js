@@ -4,21 +4,7 @@ var v2 = document.getElementById("tgt");
 // Variable to prevent infinite loop events
 let isSyncing = false;
 
-// Throttle function to limit the rate at which a function is executed
-function throttle(func, limit) {
-  let inThrottle;
-  return function () {
-    const args = arguments;
-    const context = this;
-    if (!inThrottle) {
-      func.apply(context, args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
-}
-
-// Play/Pause both videos in sync
+// Sync Play/Pause both videos
 function syncPlayPause() {
   if (!isSyncing) {
     isSyncing = true;
@@ -33,35 +19,33 @@ function syncPlayPause() {
   }
 }
 
-// Sync the currentTime and playbackRate of both videos
-function syncTime(source, target) {
-  if (!isSyncing) {
+// Function to sync time between videos using requestAnimationFrame
+function syncTimeWithAnimation() {
+  if (!isSyncing && !v.paused && !v2.paused) {
     isSyncing = true;
-    target.currentTime = source.currentTime;
-    target.playbackRate = source.playbackRate;
-
-    if (source.paused && !target.paused) {
-      target.pause();
-    } else if (!source.paused && target.paused) {
-      target.play();
+    // Sync currentTime and playbackRate
+    if (v.currentTime !== v2.currentTime) {
+      v2.currentTime = v.currentTime;
     }
     isSyncing = false;
+    // Continue syncing
+    requestAnimationFrame(syncTimeWithAnimation);
   }
 }
 
-// Event listeners to handle syncing on play, pause, and time updates
-v.addEventListener("play", syncPlayPause);
-v.addEventListener("pause", syncPlayPause);
-v2.addEventListener("play", syncPlayPause);
-v2.addEventListener("pause", syncPlayPause);
+// Function to start syncing using requestAnimationFrame
+function startSyncing() {
+  requestAnimationFrame(syncTimeWithAnimation);
+}
 
-// Throttle time synchronization to reduce lag
-v.addEventListener("timeupdate", throttle(() => syncTime(v, v2), 200));
-v2.addEventListener("timeupdate", throttle(() => syncTime(v2, v), 200));
-
-// Sync seeking actions (jumping to another time in the video)
-v.addEventListener("seeking", () => syncTime(v, v2));
-v2.addEventListener("seeking", () => syncTime(v2, v));
+// Event listeners for syncing on play/pause
+v.addEventListener('play', () => {
+  syncPlayPause();
+  startSyncing();
+});
+v.addEventListener('pause', syncPlayPause);
+v2.addEventListener('play', startSyncing);
+v2.addEventListener('pause', syncPlayPause);
 
 // Function to play or pause both videos
 function video_click() {
