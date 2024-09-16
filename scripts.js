@@ -1,16 +1,14 @@
 var v = document.getElementById("src");
 var v2 = document.getElementById("tgt");
-var speedDisplay = document.getElementById("speed-value");
-var separatorLine = document.getElementById("separator-line");
 
-// Flag to prevent looping events
+// Variable to prevent infinite loop events
 let isSyncing = false;
 
-// Play/Pause both videos in sync
+// Sync Play and Pause between both videos
 function syncPlayPause() {
   if (!isSyncing) {
     isSyncing = true;
-    if (v.paused || v2.paused) {
+    if (v.paused && v2.paused) {
       v.play();
       v2.play();
     } else {
@@ -21,12 +19,14 @@ function syncPlayPause() {
   }
 }
 
-// Sync video seeking and playback rate
-function syncVideos(source, target) {
+// Sync the currentTime and playbackRate of both videos
+function syncTime(source, target) {
   if (!isSyncing) {
     isSyncing = true;
     target.currentTime = source.currentTime;
     target.playbackRate = source.playbackRate;
+
+    // Sync play/pause status
     if (source.paused && !target.paused) {
       target.pause();
     } else if (!source.paused && target.paused) {
@@ -36,42 +36,39 @@ function syncVideos(source, target) {
   }
 }
 
-// Event listeners to synchronize the videos
-v.addEventListener('play', () => syncPlayPause());
-v.addEventListener('pause', () => syncPlayPause());
-v2.addEventListener('play', () => syncPlayPause());
-v2.addEventListener('pause', () => syncPlayPause());
+// Event listeners to handle syncing on play, pause, and time updates
+v.addEventListener('play', syncPlayPause);
+v.addEventListener('pause', syncPlayPause);
+v2.addEventListener('play', syncPlayPause);
+v2.addEventListener('pause', syncPlayPause);
 
-v.addEventListener('timeupdate', () => syncVideos(v, v2));
-v2.addEventListener('timeupdate', () => syncVideos(v2, v));
+// Sync the current time and speed of both videos during playback
+v.addEventListener('timeupdate', () => syncTime(v, v2));
+v2.addEventListener('timeupdate', () => syncTime(v2, v));
 
-v.addEventListener('seeking', () => syncVideos(v, v2));
-v2.addEventListener('seeking', () => syncVideos(v2, v));
+// Sync seeking actions (jumping to another time in the video)
+v.addEventListener('seeking', () => syncTime(v, v2));
+v2.addEventListener('seeking', () => syncTime(v2, v));
 
-// Function to play or pause both videos
+// Function to handle play/pause by clicking on the video
 function video_click() {
   syncPlayPause();
 }
 
-// Function to track the position of the mouse and adjust the clipper and separator line
-var videoContainer = document.getElementById("video-compare-container"),
-    videoClipper = document.getElementById("video-clipper"),
-    clippedVideo = videoClipper.getElementsByTagName("video")[0];
-
-function trackLocation(e) {
-  var rect = videoContainer.getBoundingClientRect(),
-      position = ((e.pageX - rect.left) / videoContainer.offsetWidth) * 100;
-  if (position <= 100) {
-    videoClipper.style.width = position + "%";  // Adjust the width of the clipper
-    clippedVideo.style.left = -50 + (position / 2) + "%";  // Adjust the position of the second video
-  }
+// Volume control for both videos
+function setVolume(volume) {
+  v.volume = volume;
+  v2.volume = volume;
 }
 
-videoContainer.addEventListener("mousemove", trackLocation, false);
-videoContainer.addEventListener("touchstart", trackLocation, false);
-videoContainer.addEventListener("touchmove", trackLocation, false);
+// Speed control for both videos
+function updateSpeed(speed) {
+  v.playbackRate = speed;
+  v2.playbackRate = speed;
+  document.getElementById("speed-value").textContent = speed + "x";
+}
 
-// Function to load video from file input and maintain its size
+// Load the video and ensure proper size for both
 function loadVideo(event, videoId) {
   var video = document.getElementById(videoId);
   var file = event.target.files[0];
@@ -82,8 +79,8 @@ function loadVideo(event, videoId) {
     video.load();
 
     video.onloadedmetadata = function () {
-      videoContainer.style.width = video.videoWidth + 'px';
-      videoContainer.style.height = video.videoHeight + 'px';
+      document.getElementById("video-compare-container").style.width = video.videoWidth + 'px';
+      document.getElementById("video-compare-container").style.height = video.videoHeight + 'px';
       video.play();
     };
   }
@@ -95,35 +92,10 @@ function toggleMode() {
   document.body.classList.toggle('light-mode');
 }
 
-// Custom Play/Pause Control
-function controlVideo(action) {
-  syncPlayPause();
-}
-
-// Volume Control
-function setVolume(volume) {
-  v.volume = volume;
-  v2.volume = volume;
-}
-
-// Speed Control
-function updateSpeed(speed) {
-  v.playbackRate = speed;
-  v2.playbackRate = speed;
-  document.getElementById("speed-value").textContent = speed + "x";
-}
-
 // Progress Bars for Both Videos
 v.addEventListener("timeupdate", function() {
   let progressSrc = document.getElementById("progress-src");
   progressSrc.value = (v.currentTime / v.duration) * 100;
-});
-
-v2.addEventListener("timeupdate", function() {
-  let progressTgt = document.getElementById("progress-tgt");
-  progressTgt.value = (v2.currentTime / v2.duration) * 100;
-});
-
 });
 
 v2.addEventListener("timeupdate", function() {
