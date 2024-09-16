@@ -3,15 +3,54 @@ var v2 = document.getElementById("tgt");
 var speedDisplay = document.getElementById("speed-value");
 var separatorLine = document.getElementById("separator-line");
 
+// Flag to prevent looping events
+let isSyncing = false;
+
+// Play/Pause both videos in sync
+function syncPlayPause() {
+  if (!isSyncing) {
+    isSyncing = true;
+    if (v.paused || v2.paused) {
+      v.play();
+      v2.play();
+    } else {
+      v.pause();
+      v2.pause();
+    }
+    isSyncing = false;
+  }
+}
+
+// Sync video seeking and playback rate
+function syncVideos(source, target) {
+  if (!isSyncing) {
+    isSyncing = true;
+    target.currentTime = source.currentTime;
+    target.playbackRate = source.playbackRate;
+    if (source.paused && !target.paused) {
+      target.pause();
+    } else if (!source.paused && target.paused) {
+      target.play();
+    }
+    isSyncing = false;
+  }
+}
+
+// Event listeners to synchronize the videos
+v.addEventListener('play', () => syncPlayPause());
+v.addEventListener('pause', () => syncPlayPause());
+v2.addEventListener('play', () => syncPlayPause());
+v2.addEventListener('pause', () => syncPlayPause());
+
+v.addEventListener('timeupdate', () => syncVideos(v, v2));
+v2.addEventListener('timeupdate', () => syncVideos(v2, v));
+
+v.addEventListener('seeking', () => syncVideos(v, v2));
+v2.addEventListener('seeking', () => syncVideos(v2, v));
+
 // Function to play or pause both videos
 function video_click() {
-  if (v.paused) {
-    v.play();
-    v2.play();
-  } else {
-    v.pause();
-    v2.pause();
-  }
+  syncPlayPause();
 }
 
 // Function to track the position of the mouse and adjust the clipper and separator line
@@ -58,13 +97,7 @@ function toggleMode() {
 
 // Custom Play/Pause Control
 function controlVideo(action) {
-  if (action === 'play') {
-    v.play();
-    v2.play();
-  } else if (action === 'pause') {
-    v.pause();
-    v2.pause();
-  }
+  syncPlayPause();
 }
 
 // Volume Control
@@ -84,6 +117,13 @@ function updateSpeed(speed) {
 v.addEventListener("timeupdate", function() {
   let progressSrc = document.getElementById("progress-src");
   progressSrc.value = (v.currentTime / v.duration) * 100;
+});
+
+v2.addEventListener("timeupdate", function() {
+  let progressTgt = document.getElementById("progress-tgt");
+  progressTgt.value = (v2.currentTime / v2.duration) * 100;
+});
+
 });
 
 v2.addEventListener("timeupdate", function() {
